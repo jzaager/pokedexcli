@@ -19,7 +19,17 @@ func startRepl() {
 		}
 
 		commandName := words[0]
-		fmt.Printf("Your command was: %s\n", commandName)
+		command, exists := getCommands()[commandName]
+		if exists {
+			err := command.callback()
+			if err != nil {
+				fmt.Println(err)
+			}
+			continue
+		} else {
+			fmt.Println("Unknown command")
+			continue
+		}
 	}
 }
 
@@ -30,4 +40,29 @@ func cleanInput(text string) []string {
 	lower := strings.ToLower(text)
 	words := strings.Fields(lower)
 	return words
+}
+
+type cliCommand struct {
+	name        string
+	description string
+	callback    func() error
+}
+
+type CommandRegistry map[string]cliCommand
+
+var supportedCommands CommandRegistry
+
+func getCommands() CommandRegistry {
+	return CommandRegistry{
+		"help": {
+			name:        "help",
+			description: "Displays a help message",
+			callback:    commandHelp,
+		},
+		"exit": {
+			name:        "exit",
+			description: "Exit the Pokedex",
+			callback:    commandExit,
+		},
+	}
 }
