@@ -51,8 +51,8 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	}
 
 	elapsed := time.Since(start)
-
 	logFetchTime(elapsed, false)
+
 	c.cache.Add(url, data)
 	return locationsResp, nil
 }

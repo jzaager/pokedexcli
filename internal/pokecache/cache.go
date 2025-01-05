@@ -26,21 +26,21 @@ func NewCache(interval time.Duration) Cache {
 	return cache
 }
 
-func (c *Cache) Add(url string, data []byte) {
+func (c *Cache) Add(key string, data []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.cache[url] = cacheEntry{
+	c.cache[key] = cacheEntry{
 		createdAt: time.Now(),
 		val:       data,
 	}
 }
 
-func (c *Cache) Get(url string) ([]byte, bool) {
+func (c *Cache) Get(key string) ([]byte, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	val, ok := c.cache[url]
+	val, ok := c.cache[key]
 	return val.val, ok
 }
 
