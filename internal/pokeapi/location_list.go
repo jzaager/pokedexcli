@@ -11,19 +11,21 @@ import (
 func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	start := time.Now()
 
-	url := baseURL + "/location-area"
+	url := baseURL + "/location-area?offset=0&limit=20"
 	if pageURL != nil {
 		url = *pageURL
 	}
 
-	cachedLocations, ok := c.getCached(url)
-	if ok {
-		fmt.Println()
-		fmt.Println("Cache hit!")
+	if val, ok := c.cache.Get(url); ok {
+		locationsResp := RespShallowLocations{}
+		err := json.Unmarshal(val, &locationsResp)
+		if err != nil {
+			return RespShallowLocations{}, err
+		}
+
 		elapsed := time.Since(start)
-		fmt.Printf("Request took: %v\n", elapsed)
-		fmt.Println()
-		return cachedLocations, nil
+		logFetchTime(elapsed, true)
+		return locationsResp, nil
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -41,7 +43,6 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	if err != nil {
 		return RespShallowLocations{}, err
 	}
-	c.cache.Add(url, data)
 
 	locationsResp := RespShallowLocations{}
 	err = json.Unmarshal(data, &locationsResp)
@@ -50,24 +51,21 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	}
 
 	elapsed := time.Since(start)
-	fmt.Println()
-	fmt.Println("Not cached - fetching from API...")
-	fmt.Printf("Request took: %v\n", elapsed)
-	fmt.Println()
+
+	logFetchTime(elapsed, false)
+	c.cache.Add(url, data)
 	return locationsResp, nil
 }
 
-func (c *Client) getCached(url string) (RespShallowLocations, bool) {
-	cacheData, ok := c.cache.Get(url)
-	if !ok {
-		return RespShallowLocations{}, false
+func logFetchTime(elapsed time.Duration, cached bool) {
+	fmt.Println()
+
+	if cached {
+		fmt.Println("Cache hit!")
+	} else {
+		fmt.Println("Not cached - fetching from API...")
 	}
 
-	locationsResp := RespShallowLocations{}
-	err := json.Unmarshal(cacheData, &locationsResp)
-	if err != nil {
-		return RespShallowLocations{}, false
-	}
-
-	return locationsResp, true
+	fmt.Printf("Request took: %v\n", elapsed)
+	fmt.Println()
 }

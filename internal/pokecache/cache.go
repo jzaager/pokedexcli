@@ -12,12 +12,15 @@ type cacheEntry struct {
 }
 
 type Cache struct {
-	entries map[string]cacheEntry
-	mu      sync.Mutex
+	cache map[string]cacheEntry
+	mu    *sync.Mutex
 }
 
-func NewCache(interval time.Duration) *Cache {
-	cache := &Cache{entries: map[string]cacheEntry{}}
+func NewCache(interval time.Duration) Cache {
+	cache := Cache{
+		cache: make(map[string]cacheEntry),
+		mu:    &sync.Mutex{},
+	}
 	go cache.reapLoop(interval)
 
 	return cache
@@ -27,34 +30,36 @@ func (c *Cache) Add(url string, data []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	newEntry := cacheEntry{createdAt: time.Now(), val: data}
-	c.entries[url] = newEntry
+	c.cache[url] = cacheEntry{
+		createdAt: time.Now(),
+		val:       data,
+	}
 }
 
 func (c *Cache) Get(url string) ([]byte, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	entry, ok := c.entries[url]
-	return entry.val, ok
+	val, ok := c.cache[url]
+	return val.val, ok
 }
 
 func (c *Cache) reapLoop(interval time.Duration) {
 	// sends current time on channel each time interval passes
 	// defer ticker.Stop() - no longer needed after go 1.23
 	ticker := time.NewTicker(interval)
-	for {
-		<-ticker.C // waits for the next tick
-		c.mu.Lock()
-		now := time.Now()
+	for range ticker.C {
+		c.reap(time.Now(), interval)
+	}
+}
 
-		for key, entry := range c.entries {
-			// duration diff between now and createdAt compared to interval
-			// if duration diff > interval, delete the entry
-			if now.Sub(entry.createdAt) > interval {
-				delete(c.entries, key) // remove old entries
-			}
+func (c *Cache) reap(now time.Time, last time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for key, val := range c.cache {
+		if val.createdAt.Before(now.Add(-last)) {
+			delete(c.cache, key)
 		}
-		c.mu.Unlock()
 	}
 }

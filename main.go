@@ -4,14 +4,13 @@ import (
 	"time"
 
 	"github.com/jzaager/pokedexcli/internal/pokeapi"
-	"github.com/jzaager/pokedexcli/internal/pokecache"
 )
 
 func main() {
-	cache := pokecache.NewCache(5 * time.Second)
-	client := pokeapi.NewClient(5*time.Second, cache)
+	client := pokeapi.NewClient(5*time.Second, 5*time.Minute)
 	cfg := &config{
 		pokeapiClient: client,
 	}
+
 	startRepl(cfg)
 }
