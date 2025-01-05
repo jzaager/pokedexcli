@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/jzaager/pokedexcli/internal/pokeapi"
 	"time"
+
+	"github.com/jzaager/pokedexcli/internal/pokeapi"
+	"github.com/jzaager/pokedexcli/internal/pokecache"
 )
 
 func main() {
-	client := pokeapi.NewClient(5 * time.Second)
+	cache := pokecache.NewCache(5 * time.Second)
+	client := pokeapi.NewClient(5*time.Second, cache)
 	cfg := &config{
 		pokeapiClient: client,
 	}
