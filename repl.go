@@ -93,5 +93,10 @@ func getCommands() CommandRegistry {
 			description: "Display a list of pokemon at a given location",
 			callback:    commandExplore,
 		},
+		"catch": {
+			name:        "catch <pokemon_name>",
+			description: "Throw a pokeball at a pokemon for a chance to catch it",
+			callback:    commandCatch,
+		},
 	}
 }
