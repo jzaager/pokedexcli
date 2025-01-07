@@ -10,6 +10,7 @@ import (
 )
 
 type config struct {
+	caughtPokemon   map[string]pokeapi.Pokemon
 	pokeapiClient   pokeapi.Client
 	nextLocationURL *string
 	prevLocationURL *string
@@ -80,22 +81,22 @@ func getCommands() CommandRegistry {
 		},
 		"map": {
 			name:        "map",
-			description: "Display next page of locations",
+			description: "Displays next page of locations",
 			callback:    commandMapF,
 		},
 		"mapb": {
 			name:        "mapb",
-			description: "Display previous page of locations",
+			description: "Displays previous page of locations",
 			callback:    commandMapB,
 		},
 		"explore": {
 			name:        "explore <location_name>",
-			description: "Display a list of pokemon at a given location",
+			description: "Displays a list of pokemon at a given location",
 			callback:    commandExplore,
 		},
 		"catch": {
 			name:        "catch <pokemon_name>",
-			description: "Throw a pokeball at a pokemon for a chance to catch it",
+			description: "Attempt to catch a pokemon",
 			callback:    commandCatch,
 		},
 	}

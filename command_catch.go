@@ -12,32 +12,37 @@ func commandCatch(cfg *config, args ...string) error {
 	}
 
 	pokemonName := args[0]
-
 	pokemonResp, err := cfg.pokeapiClient.GetPokemon(pokemonName)
 	if err != nil {
-		return fmt.Errorf("Could not find pokemon %s\n", pokemonName)
+		return fmt.Errorf("Could not find pokemon %q\n", pokemonName)
 	}
 
 	fmt.Println()
-	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
+	fmt.Printf("Throwing a Pokeball at %s...", pokemonName)
 	fmt.Println()
 
-	// TODO: use pokemonResp
+	//	1000 - 600 = 400 // 400 / 1000 = 0.40
+	//	1000 - 50  = 950 // 950 / 1000 = 0.95
 	baseXP := pokemonResp.BaseExperience
-	//		     1000 - 600 = 400 // 400 / 1000 = 0.40
-	//			 1000 - 50  = 950 // 950 / 1000 = 0.95
 	catchRate := float32(1000-baseXP) / float32(1000)
 	esacpeRate := 1 - rand.Float32()
 
-	fmt.Printf("Catch rate: %.2f\n", catchRate)
-	fmt.Printf("Escape rate: %.2f\n", esacpeRate)
+	/*
+		alt for catch chance:
+		catchChance := rand.Intn(pokemonResp.BaseExperience)
+		if catchChance > 40 {
+			// print escaped
+			// return nil
+		}
+	*/
 
-	if catchRate > esacpeRate {
-		fmt.Printf("%s has been caught!\n", pokemonName)
-	} else {
-		fmt.Printf("%s escaped!\n", pokemonName)
+	if catchRate < esacpeRate {
+		fmt.Printf("%s escaped!\n\n", pokemonName)
+		return nil
 	}
 
-	fmt.Println()
+	fmt.Printf("%s has been caught!\n\n", pokemonName)
+
+	cfg.caughtPokemon[pokemonName] = pokemonResp
 	return nil
 }

@@ -58,7 +58,7 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 }
 
 func logFetchTime(elapsed time.Duration, cached bool) {
-	fmt.Println()
+	fmt.Println("======================================")
 
 	if cached {
 		fmt.Println("Cache hit!")
@@ -67,5 +67,5 @@ func logFetchTime(elapsed time.Duration, cached bool) {
 	}
 
 	fmt.Printf("Request took: %v\n", elapsed)
-	fmt.Println()
+	fmt.Println("======================================")
 }
