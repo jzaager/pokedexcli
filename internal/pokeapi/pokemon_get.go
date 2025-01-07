@@ -7,48 +7,48 @@ import (
 	"time"
 )
 
-func (c *Client) GetLocation(areaName string) (Location, error) {
+func (c *Client) GetPokemon(pokemonName string) (Pokemon, error) {
 	start := time.Now()
-	url := baseURL + "/location-area/" + areaName
+	url := baseURL + "/pokemon/" + pokemonName
 
 	if val, ok := c.cache.Get(url); ok {
-		locationResp := Location{}
-		err := json.Unmarshal(val, &locationResp)
+		pokemonResp := Pokemon{}
+		err := json.Unmarshal(val, &pokemonResp)
 		if err != nil {
-			return Location{}, err
+			return Pokemon{}, err
 		}
 
 		elapsed := time.Since(start)
 		logFetchTime(elapsed, true)
 
-		return locationResp, nil
+		return pokemonResp, nil
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return Location{}, err
+		return Pokemon{}, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return Location{}, err
+		return Pokemon{}, err
 	}
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Location{}, err
+		return Pokemon{}, err
 	}
 
-	locationResp := Location{}
-	err = json.Unmarshal(data, &locationResp)
+	pokemonResp := Pokemon{}
+	err = json.Unmarshal(data, &pokemonResp)
 	if err != nil {
-		return Location{}, err
+		return Pokemon{}, err
 	}
 
 	elapsed := time.Since(start)
 	logFetchTime(elapsed, false)
 
 	c.cache.Add(url, data)
-	return locationResp, nil
+	return pokemonResp, nil
 }
