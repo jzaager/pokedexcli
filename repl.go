@@ -104,5 +104,10 @@ func getCommands() CommandRegistry {
 			description: "View details about a caught pokemon",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Displays a list of all your caught pokemon",
+			callback:    commandPokedex,
+		},
 	}
 }
