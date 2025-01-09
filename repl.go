@@ -28,9 +28,9 @@ func startRepl(cfg *config) {
 	defer cleanup()
 
 	fmt.Print("Pokedex > ")
-	var inputBuffer strings.Builder
 
-	commandsEntered := []string{}
+	var inputBuffer strings.Builder
+	commandHistory := []string{}
 	idx := 0
 	prevCommand := ""
 
@@ -45,36 +45,32 @@ func startRepl(cfg *config) {
 			commandExit(cfg)
 			return
 		case keyboard.KeyArrowUp:
-			idx := len(commandsEntered) - 1
-			prevCommand = getPrevCommand(commandsEntered, idx)
-			inputBuffer.Reset()
-			inputBuffer.WriteString(prevCommand)
-			fmt.Print(prevCommand)
+			prevCommand, idx = getPrevCommand(commandHistory, idx)
+			printPrevCommand(&inputBuffer, prevCommand)
 		case keyboard.KeySpace:
 			inputBuffer.WriteRune(' ')
 			fmt.Print(" ")
 		case keyboard.KeyEnter:
-			fmt.Println()
-			text := inputBuffer.String()
-			cmd, args := processText(text)
-			err := runCommand(cfg, cmd, args...)
+			cmd, args, err := handleEnter(&inputBuffer)
+			if err != nil {
+				inputBuffer.Reset()
+				fmt.Print("Pokedex > ")
+				continue
+			}
+			err = runCommand(cfg, cmd, args...)
 			if err != nil {
 				fmt.Println(err)
+				commandHistory = updateCommandHistory(commandHistory, &inputBuffer)
+				idx = len(commandHistory) - 1
+				continue
 			}
-			commandsEntered = append(commandsEntered, text)
-			idx += 1
-			inputBuffer.Reset()
-			fmt.Print("Pokedex > ")
-			continue
+			commandHistory = updateCommandHistory(commandHistory, &inputBuffer)
+			idx = len(commandHistory) - 1
 		case 127: // 'backspace'
 			if inputBuffer.Len() > 0 {
-				text := inputBuffer.String()
-				inputBuffer.Reset()
-				inputBuffer.WriteString(text[:len(text)-1])
-
-				// Move cursor back, overwrite last char, and move back again
-				fmt.Print("\b \b")
+				handleBackspace(&inputBuffer)
 			}
+			idx = len(commandHistory) - 1
 		default:
 			inputBuffer.WriteRune(char)
 			fmt.Print(string(char))
@@ -82,18 +78,48 @@ func startRepl(cfg *config) {
 	}
 }
 
-func getPrevCommand(allCommands []string, i int) string {
-	fmt.Println(allCommands)
-	fmt.Println(i)
+func handleBackspace(buf *strings.Builder) {
+	text := buf.String()
+	buf.Reset()
+	buf.WriteString(text[:len(text)-1])
+
+	// Move cursor back, overwrite last char, and move back again
+	fmt.Print("\b \b")
+}
+
+func updateCommandHistory(commands []string, buf *strings.Builder) []string {
+	commands = append(commands, buf.String())
+
+	buf.Reset()
+	fmt.Print("Pokedex > ")
+	return commands
+}
+
+func handleEnter(buf *strings.Builder) (string, []string, error) {
+	fmt.Println()
+	text := buf.String()
+	if text == "" {
+		return "", nil, fmt.Errorf("No text provided")
+	}
+
+	cmd, args := splitCommandArgs(text)
+	return cmd, args, nil
+}
+
+func printPrevCommand(buf *strings.Builder, command string) {
+	buf.Reset()
+	buf.WriteString(command)
+	fmt.Printf("\r\033[KPokedex > %s", command)
+}
+
+func getPrevCommand(allCommands []string, i int) (string, int) {
 	if len(allCommands) == 0 {
-		return ""
+		return "", i
 	}
-
-	if i-1 < 0 {
-		return allCommands[0]
+	if i < 0 {
+		return allCommands[0], 0
 	}
-
-	return allCommands[i]
+	return allCommands[i], i - 1
 }
 
 func runCommand(cfg *config, cmd string, args ...string) error {
@@ -111,7 +137,7 @@ func runCommand(cfg *config, cmd string, args ...string) error {
 	return nil
 }
 
-func processText(text string) (command string, args []string) {
+func splitCommandArgs(text string) (command string, args []string) {
 	words := cleanInput(text)
 	if len(words) == 0 {
 		return "", nil
