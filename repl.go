@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/eiannone/keyboard"
@@ -32,6 +30,10 @@ func startRepl(cfg *config) {
 	fmt.Print("Pokedex > ")
 	var inputBuffer strings.Builder
 
+	commandsEntered := []string{}
+	idx := 0
+	prevCommand := ""
+
 	for {
 		char, key, err := keyboard.GetKey()
 		if err != nil {
@@ -40,24 +42,27 @@ func startRepl(cfg *config) {
 
 		switch key {
 		case keyboard.KeyEsc:
-			fmt.Println("Exiting...")
-			cmd := exec.Command("stty", "sane")
-			cmd.Stdin = os.Stdin
-			cmd.Run()
-			os.Exit(0)
+			commandExit(cfg)
 			return
 		case keyboard.KeyArrowUp:
-			fmt.Print("Up ARROW PRESS")
+			idx := len(commandsEntered) - 1
+			prevCommand = getPrevCommand(commandsEntered, idx)
+			inputBuffer.Reset()
+			inputBuffer.WriteString(prevCommand)
+			fmt.Print(prevCommand)
 		case keyboard.KeySpace:
 			inputBuffer.WriteRune(' ')
 			fmt.Print(" ")
 		case keyboard.KeyEnter:
+			fmt.Println()
 			text := inputBuffer.String()
 			cmd, args := processText(text)
 			err := runCommand(cfg, cmd, args...)
 			if err != nil {
 				fmt.Println(err)
 			}
+			commandsEntered = append(commandsEntered, text)
+			idx += 1
 			inputBuffer.Reset()
 			fmt.Print("Pokedex > ")
 			continue
@@ -67,7 +72,7 @@ func startRepl(cfg *config) {
 				inputBuffer.Reset()
 				inputBuffer.WriteString(text[:len(text)-1])
 
-				// Move cursos back, overwrite last char, and move back again
+				// Move cursor back, overwrite last char, and move back again
 				fmt.Print("\b \b")
 			}
 		default:
@@ -77,16 +82,33 @@ func startRepl(cfg *config) {
 	}
 }
 
+func getPrevCommand(allCommands []string, i int) string {
+	fmt.Println(allCommands)
+	fmt.Println(i)
+	if len(allCommands) == 0 {
+		return ""
+	}
+
+	if i-1 < 0 {
+		return allCommands[0]
+	}
+
+	return allCommands[i]
+}
+
 func runCommand(cfg *config, cmd string, args ...string) error {
 	if cmd == "" {
 		return fmt.Errorf("\nNo command provided")
 	}
 	command, exists := getCommands()[cmd]
-	if exists {
-		command.callback(cfg, args...)
-		return nil
+	if !exists {
+		return fmt.Errorf("\nUnknown command")
 	}
-	return fmt.Errorf("\nUnknown command")
+	err := command.callback(cfg, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func processText(text string) (command string, args []string) {

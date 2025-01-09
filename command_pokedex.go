@@ -10,6 +10,7 @@ func commandPokedex(cfg *config, args ...string) error {
 
 	if total == 0 {
 		fmt.Println("You have not caught any pokemon yet!")
+		fmt.Println()
 		return nil
 	}
 
