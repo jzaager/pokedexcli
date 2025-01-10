@@ -1,17 +1,19 @@
-package main
+package cmd
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/jzaager/pokedexcli/config"
 )
 
-func commandInspect(cfg *config, args ...string) error {
+func Inspect(cfg *config.Config, args ...string) error {
 	if len(args) < 1 {
 		return errors.New("Must provide a pokemon name")
 	}
 
 	pokemonName := args[0]
-	pokemon, ok := cfg.caughtPokemon[pokemonName]
+	pokemon, ok := cfg.CaughtPokemon[pokemonName]
 	if !ok {
 		return fmt.Errorf("%q hasn't been caught yet!\n", pokemonName)
 	}

@@ -1,12 +1,14 @@
-package main
+package cmd
 
 import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/jzaager/pokedexcli/config"
 )
 
-func commandExit(cfg *config, args ...string) error {
+func Exit(cfg *config.Config, args ...string) error {
 	fmt.Println()
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	fmt.Println()

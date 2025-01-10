@@ -3,24 +3,26 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/eiannone/keyboard"
+	"github.com/jzaager/pokedexcli/cmd"
+	"github.com/jzaager/pokedexcli/config"
 	"github.com/jzaager/pokedexcli/internal/pokeapi"
 )
-
-type config struct {
-	caughtPokemon   map[string]pokeapi.Pokemon
-	pokeapiClient   pokeapi.Client
-	nextLocationURL *string
-	prevLocationURL *string
-}
 
 func cleanup() {
 	keyboard.Close()
 	fmt.Println("\nTerminal Reset. Exiting...")
 }
 
-func startRepl(cfg *config) {
+func startRepl() {
+	client := pokeapi.NewClient(5*time.Second, 5*time.Minute)
+	cfg := &config.Config{
+		CaughtPokemon: map[string]pokeapi.Pokemon{},
+		PokeapiClient: client,
+	}
+
 	if err := keyboard.Open(); err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -42,7 +44,8 @@ func startRepl(cfg *config) {
 
 		switch key {
 		case keyboard.KeyEsc:
-			commandExit(cfg)
+			keyboard.Close()
+			cmd.Exit(cfg)
 			return
 		case keyboard.KeyArrowUp:
 			prevCommand, idx = getPrevCommand(commandHistory, idx)
@@ -67,9 +70,10 @@ func startRepl(cfg *config) {
 			commandHistory = updateCommandHistory(commandHistory, &inputBuffer)
 			idx = len(commandHistory) - 1
 		case 127: // 'backspace'
-			if inputBuffer.Len() > 0 {
-				handleBackspace(&inputBuffer)
+			if inputBuffer.Len() == 0 {
+				continue
 			}
+			handleBackspace(&inputBuffer)
 			idx = len(commandHistory) - 1
 		default:
 			inputBuffer.WriteRune(char)
@@ -78,32 +82,12 @@ func startRepl(cfg *config) {
 	}
 }
 
-func handleBackspace(buf *strings.Builder) {
-	text := buf.String()
-	buf.Reset()
-	buf.WriteString(text[:len(text)-1])
-
-	// Move cursor back, overwrite last char, and move back again
-	fmt.Print("\b \b")
-}
-
 func updateCommandHistory(commands []string, buf *strings.Builder) []string {
 	commands = append(commands, buf.String())
 
 	buf.Reset()
 	fmt.Print("Pokedex > ")
 	return commands
-}
-
-func handleEnter(buf *strings.Builder) (string, []string, error) {
-	fmt.Println()
-	text := buf.String()
-	if text == "" {
-		return "", nil, fmt.Errorf("No text provided")
-	}
-
-	cmd, args := splitCommandArgs(text)
-	return cmd, args, nil
 }
 
 func printPrevCommand(buf *strings.Builder, command string) {
@@ -122,96 +106,18 @@ func getPrevCommand(allCommands []string, i int) (string, int) {
 	return allCommands[i], i - 1
 }
 
-func runCommand(cfg *config, cmd string, args ...string) error {
-	if cmd == "" {
+func runCommand(cfg *config.Config, commandName string, args ...string) error {
+	if commandName == "" {
 		return fmt.Errorf("\nNo command provided")
 	}
-	command, exists := getCommands()[cmd]
+
+	command, exists := cmd.GetCommands()[commandName]
 	if !exists {
 		return fmt.Errorf("\nUnknown command")
 	}
-	err := command.callback(cfg, args...)
+	err := command.Callback(cfg, args...)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func splitCommandArgs(text string) (command string, args []string) {
-	words := cleanInput(text)
-	if len(words) == 0 {
-		return "", nil
-	}
-
-	command = words[0]
-	args = []string{}
-	if len(words) > 1 {
-		args = words[1:]
-	}
-
-	return command, args
-}
-
-func cleanInput(text string) []string {
-	if len(text) == 0 {
-		return []string{}
-	}
-	lower := strings.ToLower(text)
-	words := strings.Fields(lower)
-	return words
-}
-
-type cliCommand struct {
-	name        string
-	description string
-	callback    func(cfg *config, args ...string) error
-}
-
-type CommandRegistry map[string]cliCommand
-
-var supportedCommands CommandRegistry
-
-func getCommands() CommandRegistry {
-	return CommandRegistry{
-		"help": {
-			name:        "help",
-			description: "Displays a help message",
-			callback:    commandHelp,
-		},
-		"exit": {
-			name:        "exit",
-			description: "Exit the Pokedex",
-			callback:    commandExit,
-		},
-		"map": {
-			name:        "map",
-			description: "Displays next page of locations",
-			callback:    commandMapF,
-		},
-		"mapb": {
-			name:        "mapb",
-			description: "Displays previous page of locations",
-			callback:    commandMapB,
-		},
-		"explore": {
-			name:        "explore <location_name>",
-			description: "Displays a list of pokemon at a given location",
-			callback:    commandExplore,
-		},
-		"catch": {
-			name:        "catch <pokemon_name>",
-			description: "Attempt to catch a pokemon",
-			callback:    commandCatch,
-		},
-		"inspect": {
-			name:        "inspect <pokemon_name>",
-			description: "View details about a caught pokemon",
-			callback:    commandInspect,
-		},
-		"pokedex": {
-			name:        "pokedex",
-			description: "Displays a list of all your caught pokemon",
-			callback:    commandPokedex,
-		},
-	}
 }

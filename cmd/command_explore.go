@@ -1,18 +1,20 @@
-package main
+package cmd
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/jzaager/pokedexcli/config"
 )
 
-func commandExplore(cfg *config, args ...string) error {
+func Explore(cfg *config.Config, args ...string) error {
 	if len(args) != 1 {
 		return errors.New("Must provide a location name")
 	}
 
 	locName := args[0]
 
-	locationResp, err := cfg.pokeapiClient.GetLocation(locName)
+	locationResp, err := cfg.PokeapiClient.GetLocation(locName)
 	if err != nil {
 		return fmt.Errorf("Could not find any pokemon for area %q [name must match exactly as in the 'map' command, case insensitive]\n", locName)
 	}

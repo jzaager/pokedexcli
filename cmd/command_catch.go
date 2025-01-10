@@ -1,18 +1,20 @@
-package main
+package cmd
 
 import (
 	"errors"
 	"fmt"
 	"math/rand"
+
+	"github.com/jzaager/pokedexcli/config"
 )
 
-func commandCatch(cfg *config, args ...string) error {
+func Catch(cfg *config.Config, args ...string) error {
 	if len(args) < 1 {
 		return errors.New("Must provide a pokemon name")
 	}
 
 	pokemonName := args[0]
-	pokemonResp, err := cfg.pokeapiClient.GetPokemon(pokemonName)
+	pokemonResp, err := cfg.PokeapiClient.GetPokemon(pokemonName)
 	if err != nil {
 		return fmt.Errorf("Could not find pokemon %q\n", pokemonName)
 	}
@@ -45,6 +47,6 @@ func commandCatch(cfg *config, args ...string) error {
 	fmt.Println("You may now inspect it with the <inspect> command.")
 	fmt.Println()
 
-	cfg.caughtPokemon[pokemonName] = pokemonResp
+	cfg.CaughtPokemon[pokemonName] = pokemonResp
 	return nil
 }
